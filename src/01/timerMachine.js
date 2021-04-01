@@ -1,4 +1,25 @@
-import { createMachine } from 'xstate';
+import { createMachine } from 'xstate'
 
-// Use the machine you created in Exercise 00
-// export const timerMachine = // ...
+export const timeMachine = createMachine({
+  id: 'TimeMachine',
+  initial: 'idle',
+  states: {
+    idle: {
+      on: {
+        TOGGLE: 'running',
+      },
+    },
+    running: {
+      on: {
+        RESET: 'idle',
+        TOGGLE: 'paused',
+      },
+    },
+    paused: {
+      on: {
+        RESET: 'idle',
+        TOGGLE: 'running',
+      },
+    },
+  },
+})
