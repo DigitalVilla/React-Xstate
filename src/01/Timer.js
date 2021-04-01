@@ -28,7 +28,7 @@ export const Timer = () => {
       }}
     >
       <header>
-        <h1>Exercise 00</h1>
+        <h1>Exercise 01</h1>
       </header>
       <ProgressCircle />
       <div className="display">

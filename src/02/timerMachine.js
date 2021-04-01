@@ -1,15 +1,19 @@
-import { createMachine, assign } from 'xstate';
+import { assign, createMachine } from 'xstate'
 
-export const timerMachine = createMachine({
+export const timeMachine = createMachine({
+  id: 'TimeMachine',
   initial: 'idle',
-  // Add initial context
-  // ...
-
+  context: {
+    duration: 60,
+    elapsed: 0,
+    increment: 0.1,
+  },
   states: {
     idle: {
-      // Reset duration and elapsed on entry
-      // ...
-
+      entry: assign({
+        duration: 60,
+        elapsed: 0,
+      }),
       on: {
         TOGGLE: 'running',
       },
@@ -17,16 +21,28 @@ export const timerMachine = createMachine({
     running: {
       on: {
         TOGGLE: 'paused',
-
-        // On ADD_MINUTE, increment context.duration by 60 seconds
-        // ...
+        ADD_MINUTE: {
+          target: undefined, // DEFAULT, state stays the same,
+          actions: assign({
+            duration: (ctx) => ctx.duration + 60,
+          }),
+        },
       },
     },
     paused: {
       on: {
-        TOGGLE: 'running',
         RESET: 'idle',
+        TOGGLE: 'running',
       },
     },
   },
-});
+})
+
+// Returns boolean or ternary value
+export const onState = (state) => {
+  return (newState, success, defaults) => {
+    const contains = state.value === newState
+    if (success) return contains ? success : defaults
+    return contains
+  }
+}
