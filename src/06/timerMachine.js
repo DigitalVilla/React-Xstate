@@ -41,11 +41,19 @@ export const timerMachine = createMachine(
             },
           },
           overtime: {
+            after: {
+              [timer * 1000]: 'timeOver',
+            },
             on: {
               TOGGLE: undefined,
             },
           },
+          timeOver: {
+            type: 'final',
+          },
         },
+        onDone: 'idle',
+
         on: {
           TOGGLE: 'paused',
           TICK: {
@@ -87,7 +95,6 @@ export const updatedState = (state) => {
     let contains = false
     let value =
       typeof state.value === 'object' ? state.toStrings()[1] : state.value
-    console.log(value)
     if (typeof newState === 'object' && newState.length) {
       contains = newState.includes(value)
     } else {
