@@ -1,49 +1,93 @@
-import { createMachine, assign } from 'xstate';
+import { assign, createMachine } from 'xstate'
+export const timer = 5
+const tick = assign({
+  elapsed: (ctx) => ctx.elapsed + ctx.interval,
+})
 
-export const timerMachine = createMachine({
-  initial: 'idle',
-  context: {
-    duration: 5,
-    elapsed: 0,
-    interval: 0.1,
-  },
-  states: {
-    idle: {
-      entry: assign({
-        duration: 5,
-        elapsed: 0,
-      }),
-      on: {
-        TOGGLE: 'running',
-      },
+const plusOne = assign({
+  duration: (ctx) => ctx.duration + timer,
+})
+
+const reset = assign({
+  duration: timer,
+  elapsed: 0,
+})
+
+const isZero = (ctx) => ctx.elapsed + ctx.interval <= ctx.duration
+
+export const timerMachine = createMachine(
+  {
+    id: 'TimeMachine',
+    initial: 'idle',
+    context: {
+      duration: timer,
+      elapsed: 0,
+      interval: 0.1,
     },
-    running: {
-      on: {
-        // Change this TICK transition into a guarded transition
-        // to go to `expired` when `context.elapsed + context.interval`
-        // is greater than the total `context.duration`.
-        TICK: {
-          actions: assign({
-            elapsed: (ctx) => ctx.elapsed + ctx.interval,
-          }),
-        },
-        TOGGLE: 'paused',
-        ADD_MINUTE: {
-          actions: assign({
-            duration: (ctx) => ctx.duration + 60,
-          }),
+    states: {
+      idle: {
+        entry: 'reset',
+        on: {
+          TOGGLE: 'running',
         },
       },
-    },
-    paused: {
-      on: {
-        TOGGLE: 'running',
-        RESET: 'idle',
+      running: {
+        on: {
+          TOGGLE: 'paused',
+          TICK: [
+            {
+              actions: 'tick',
+              cond: 'isZero',
+            },
+            { target: 'expired' },
+          ],
+          PLUS: {
+            actions: 'plusOne',
+          },
+        },
+      },
+      paused: {
+        on: {
+          TOGGLE: 'running',
+          RESET: 'idle',
+        },
+      },
+      expired: {
+        on: {
+          RESET: 'idle',
+        },
       },
     },
-
-    // Add an `expired` state here.
-    // It should go to the `idle` state on the `RESET` event.
-    // ...
   },
-});
+  {
+    actions: {
+      tick,
+      plusOne,
+      reset,
+    },
+    guards: {
+      isZero,
+    },
+  }
+)
+
+// Returns boolean or ternary value
+export const updatedState = (state) => {
+  const validateState = (newState, success, defaults, reversed = false) => {
+    let contains = false
+    if (typeof newState === 'object' && newState.length) {
+      contains = newState.includes(state.value)
+    } else {
+      contains = state.value === newState
+    }
+    if (reversed) contains = !contains
+    if (success) return contains ? success : defaults
+
+    return contains
+  }
+
+  return {
+    is: (s, a, b) => validateState(s, a, b),
+    isNot: (s, a, b) => validateState(s, a, b, true),
+  }
+}
