@@ -16,6 +16,20 @@
   display: none !important;
 }
 
+html {
+  overflow: hidden;
+  height: 100%;
+}
+
+body {
+  overflow: auto;
+  height: 100%;
+}
+
+.noSelect {
+  user-select: none;
+}
+
 html,
 body,
 #root {
@@ -169,6 +183,7 @@ input[type='number']::-webkit-outer-spin-button {
     }
   }
 
+  &[data-state~='stopped'],
   &[data-state~='paused'] {
     .elapsed {
       animation: pulse 1s steps(1) infinite;

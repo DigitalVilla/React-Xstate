@@ -1,48 +1,85 @@
-import { createMachine, assign } from 'xstate';
+import { assign, createMachine } from 'xstate'
+export const timer = 10
+const tick = assign({
+  elapsed: (ctx) => ctx.elapsed + ctx.interval,
+})
 
-// Parameterize the assign actions here:
-// const tick = ...
-// const addMinute = ...
-// const reset = ...
+const plusOne = assign({
+  duration: (ctx) => ctx.duration + timer,
+})
 
-export const timerMachine = createMachine({
-  initial: 'idle',
-  context: {
-    duration: 60,
-    elapsed: 0,
-    interval: 0.1,
-  },
-  states: {
-    idle: {
-      // Parameterize this action:
-      entry: assign({
-        duration: 60,
-        elapsed: 0,
-      }),
+const reset = assign({
+  duration: timer,
+  elapsed: 0,
+})
 
-      on: {
-        TOGGLE: 'running',
-      },
+export const timerMachine = createMachine(
+  {
+    id: 'TimeMachine',
+    initial: 'idle',
+    context: {
+      duration: timer,
+      elapsed: 0,
+      interval: 0.1,
     },
-    running: {
-      on: {
-        // On the TICK event, the context.elapsed should be incremented by context.interval
-        // ...
-
-        TOGGLE: 'paused',
-        ADD_MINUTE: {
-          // Parameterize this action:
-          actions: assign({
-            duration: (ctx) => ctx.duration + 60,
-          }),
+    states: {
+      idle: {
+        entry: 'reset',
+        on: {
+          TOGGLE: 'running',
+        },
+      },
+      running: {
+        on: {
+          TOGGLE: 'paused',
+          STOP: 'stopped',
+          TICK: {
+            actions: 'tick',
+          },
+          PLUS: {
+            actions: 'plusOne',
+          },
+        },
+      },
+      paused: {
+        on: {
+          TOGGLE: 'running',
+          RESET: 'idle',
+        },
+      },
+      stopped: {
+        on: {
+          RESET: 'idle',
         },
       },
     },
-    paused: {
-      on: {
-        TOGGLE: 'running',
-        RESET: 'idle',
-      },
-    },
   },
-});
+  {
+    actions: {
+      tick,
+      plusOne,
+      reset,
+    },
+  }
+)
+
+// Returns boolean or ternary value
+export const currentState = (state) => {
+  const validateState = (newState, success, defaults, reversed = false) => {
+    let contains = false
+    if (typeof newState === 'object' && newState.length) {
+      contains = newState.includes(state.value)
+    } else {
+      contains = state.value === newState
+    }
+    if (reversed) contains = !contains
+    if (success) return contains ? success : defaults
+
+    return contains
+  }
+
+  return {
+    is: (s, a, b) => validateState(s, a, b),
+    isNot: (s, a, b) => validateState(s, a, b, true),
+  }
+}
