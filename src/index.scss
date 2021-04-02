@@ -183,13 +183,13 @@ input[type='number']::-webkit-outer-spin-button {
     }
   }
 
-  &[data-state~='expired'],
   &[data-state~='paused'] {
     .elapsed {
       animation: pulse 1s steps(1) infinite;
     }
   }
 
+  &[data-state~='expired'],
   &[data-state~='running.overtime'] {
     circle {
       animation: pulse 1s steps(1) infinite;

@@ -1,25 +1,27 @@
-import * as React from 'react';
-import { useEffect } from 'react';
-import { faPlay, faPause, faStop } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-
-import { useMachine } from '@xstate/react';
-import { ProgressCircle } from '../ProgressCircle';
-
-import { timerMachine } from './timerMachine';
+import React, { useEffect } from 'react'
+import { faPlay, faPause } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { ProgressCircle } from '../ProgressCircle'
+import { timerMachine, updatedState, timer } from './timerMachine'
+import { useMachine } from '@xstate/react'
 
 export const Timer = () => {
-  const [state, send] = useMachine(timerMachine);
-
-  const { duration, elapsed, interval } = state.context;
-
+  const [state, send] = useMachine(timerMachine)
+  const { duration, elapsed, interval } = state.context
+  const { is } = updatedState(state)
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      send('TICK');
-    }, interval * 1000);
+    const intervalId = setInterval(() => send('TICK'), interval * 1000)
+    return () => clearInterval(intervalId)
+    // eslint-disable-next-line
+  }, [])
 
-    return () => clearInterval(intervalId);
-  }, []);
+  const onToggle = () => send({ type: 'TOGGLE' })
+  const onResetClick = () =>
+    send(is(['paused', 'running.overtime'], 'RESET', 'PLUS'))
+  const timerStr = `+${timer.toFixed(2)}`.replace('.', ':')
+  const timerDisplay = (duration - elapsed).toFixed('1')
+  const stateDisplay =
+    state.toStrings().length === 2 ? state.toStrings()[1] : state.value
 
   return (
     <div
@@ -37,37 +39,26 @@ export const Timer = () => {
       </header>
       <ProgressCircle />
       <div className="display">
-        <div className="label">{state.toStrings().slice(-1)}</div>
-        <div className="elapsed" onClick={() => send('TOGGLE')}>
-          {Math.ceil(duration - elapsed)}
+        <div className="label">{stateDisplay.toUpperCase()}</div>
+        <div className="elapsed noSelect" onClick={onToggle}>
+          {timerDisplay}
         </div>
         <div className="controls">
-          {!state.matches({ running: 'normal' }) && (
-            <button onClick={() => send('RESET')}>Reset</button>
-          )}
-
-          {state.matches({ running: 'normal' }) && (
-            <button onClick={() => send('ADD_MINUTE')}>+ 1:00</button>
-          )}
+          <button disabled={is('idle')} onClick={onResetClick}>
+            {is(['paused', 'running.overtime'], 'Reset', timerStr)}
+          </button>
         </div>
       </div>
+
       <div className="actions">
-        {state.matches({ running: 'normal' }) && (
-          <button onClick={() => send('TOGGLE')} title="Pause timer">
-            <FontAwesomeIcon icon={faPause} />
-          </button>
-        )}
-        {state.matches({ running: 'overtime' }) && (
-          <button onClick={() => send('RESET')} title="Reset timer">
-            <FontAwesomeIcon icon={faStop} />
-          </button>
-        )}
-        {(state.matches('paused') || state.matches('idle')) && (
-          <button onClick={() => send('TOGGLE')} title="Start timer">
-            <FontAwesomeIcon icon={faPlay} />
-          </button>
-        )}
+        <button
+          disabled={is('running.overtime')}
+          title="Start/Pause timer"
+          onClick={onToggle}
+        >
+          <FontAwesomeIcon icon={is('running', faPause, faPlay)} />
+        </button>
       </div>
     </div>
-  );
-};
+  )
+}
